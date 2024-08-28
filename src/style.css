@@ -1,0 +1,13 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.canvas-container {
+  margin: 50px auto 0 auto;
+  max-width: fit-content;
+  background-color: black;
+  padding: 12px 15px;
+  border-radius: 8px;
+}
