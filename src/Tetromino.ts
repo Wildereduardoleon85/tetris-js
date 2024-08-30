@@ -13,14 +13,15 @@ type PositionCoordinatesByShape = {
 }
 
 export class Tetromino {
-  private brickSize
   private ctx: CanvasRenderingContext2D | null
   private shape
   private position
   private positionCoordinatesByShape: PositionCoordinatesByShape
-  private gridColor
-  private coordsTaken: Coordinates[]
   private _isFreezed
+  private _bricksTaken: Coordinates[]
+  private gridSize
+  private gridColor
+  private occupiedGrids
   private colorPalletes: { [K in TetrominoShapes]: ColorPalette } = {
     L: {
       main: '#E734BA',
@@ -68,160 +69,182 @@ export class Tetromino {
 
   constructor({
     canvas,
-    brickSize,
-    gridColor,
     coord,
     shape,
     position,
+    tetrisBoard,
   }: TetrominoParams) {
+    this.ctx = canvas!.getContext('2d')
+    this.shape = shape
+    this.position = position ?? 1
+    this._isFreezed = false
+    this._bricksTaken = []
+    this.gridSize = tetrisBoard.gridSize
+    this.gridColor = tetrisBoard.gridColor
+    this.occupiedGrids = tetrisBoard.gridsTaken
+
     const sOddPositionCoordinates = [
       coord,
-      { x: coord.x + brickSize, y: coord.y },
-      { x: coord.x, y: coord.y + brickSize },
-      { x: coord.x - brickSize, y: coord.y + brickSize },
+      { x: coord.x + this.gridSize, y: coord.y },
+      { x: coord.x, y: coord.y + this.gridSize },
+      {
+        x: coord.x - this.gridSize,
+        y: coord.y + this.gridSize,
+      },
     ]
 
     const sEvenPositionCoordinates = [
-      { x: coord.x - brickSize, y: coord.y },
-      { x: coord.x - brickSize, y: coord.y + brickSize },
-      { x: coord.x, y: coord.y + brickSize },
-      { x: coord.x, y: coord.y + brickSize * 2 },
+      { x: coord.x - this.gridSize, y: coord.y },
+      {
+        x: coord.x - this.gridSize,
+        y: coord.y + this.gridSize,
+      },
+      { x: coord.x, y: coord.y + this.gridSize },
+      { x: coord.x, y: coord.y + this.gridSize * 2 },
     ]
 
     const zOddPositionCoordinates = [
-      { x: coord.x - brickSize, y: coord.y },
+      { x: coord.x - this.gridSize, y: coord.y },
       coord,
-      { x: coord.x, y: coord.y + brickSize },
-      { x: coord.x + brickSize, y: coord.y + brickSize },
+      { x: coord.x, y: coord.y + this.gridSize },
+      {
+        x: coord.x + this.gridSize,
+        y: coord.y + this.gridSize,
+      },
     ]
 
     const zEvenPositionCoordinates = [
       coord,
-      { x: coord.x, y: coord.y + brickSize },
-      { x: coord.x - brickSize, y: coord.y + brickSize },
+      { x: coord.x, y: coord.y + this.gridSize },
       {
-        x: coord.x - brickSize,
-        y: coord.y + brickSize * 2,
+        x: coord.x - this.gridSize,
+        y: coord.y + this.gridSize,
+      },
+      {
+        x: coord.x - this.gridSize,
+        y: coord.y + this.gridSize * 2,
       },
     ]
 
     const oPositionCoordinates = [
-      { x: coord.x - brickSize, y: coord.y },
+      { x: coord.x - this.gridSize, y: coord.y },
       coord,
-      { x: coord.x, y: coord.y + brickSize },
-      { x: coord.x - brickSize, y: coord.y + brickSize },
+      { x: coord.x, y: coord.y + this.gridSize },
+      {
+        x: coord.x - this.gridSize,
+        y: coord.y + this.gridSize,
+      },
     ]
 
     const iOddPositionCoordinates = [
       coord,
-      { x: coord.x, y: coord.y + brickSize },
-      { x: coord.x, y: coord.y + brickSize * 2 },
-      { x: coord.x, y: coord.y + brickSize * 3 },
+      { x: coord.x, y: coord.y + this.gridSize },
+      { x: coord.x, y: coord.y + this.gridSize * 2 },
+      { x: coord.x, y: coord.y + this.gridSize * 3 },
     ]
 
     const iEvenPositionCoordinates = [
-      { x: coord.x - brickSize, y: coord.y + brickSize },
-      { x: coord.x, y: coord.y + brickSize },
-      { x: coord.x + brickSize, y: coord.y + brickSize },
       {
-        x: coord.x + brickSize * 2,
-        y: coord.y + brickSize,
+        x: coord.x - this.gridSize,
+        y: coord.y + this.gridSize,
+      },
+      { x: coord.x, y: coord.y + this.gridSize },
+      {
+        x: coord.x + this.gridSize,
+        y: coord.y + this.gridSize,
+      },
+      {
+        x: coord.x + this.gridSize * 2,
+        y: coord.y + this.gridSize,
       },
     ]
 
-    this.ctx = canvas!.getContext('2d')
-    this.brickSize = brickSize
-    this.gridColor = gridColor
-    this.shape = shape
-    this.position = position ?? 1
-    this.coordsTaken = []
-    this._isFreezed = false
     this.positionCoordinatesByShape = {
       J: {
         1: [
           coord,
-          { x: coord.x, y: coord.y + brickSize },
-          { x: coord.x, y: coord.y + 2 * brickSize },
+          { x: coord.x, y: coord.y + this.gridSize },
+          { x: coord.x, y: coord.y + 2 * this.gridSize },
           {
-            x: coord.x - brickSize,
-            y: coord.y + 2 * brickSize,
+            x: coord.x - this.gridSize,
+            y: coord.y + 2 * this.gridSize,
           },
         ],
         2: [
-          { x: coord.x - brickSize, y: coord.y },
+          { x: coord.x - this.gridSize, y: coord.y },
           {
-            x: coord.x - brickSize,
-            y: coord.y + brickSize,
+            x: coord.x - this.gridSize,
+            y: coord.y + this.gridSize,
           },
-          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + this.gridSize },
           {
-            x: coord.x + brickSize,
-            y: coord.y + brickSize,
+            x: coord.x + this.gridSize,
+            y: coord.y + this.gridSize,
           },
         ],
         3: [
           coord,
-          { x: coord.x + brickSize, y: coord.y },
-          { x: coord.x, y: coord.y + brickSize },
-          { x: coord.x, y: coord.y + brickSize * 2 },
+          { x: coord.x + this.gridSize, y: coord.y },
+          { x: coord.x, y: coord.y + this.gridSize },
+          { x: coord.x, y: coord.y + this.gridSize * 2 },
         ],
         4: [
           {
-            x: coord.x - brickSize,
-            y: coord.y + brickSize,
+            x: coord.x - this.gridSize,
+            y: coord.y + this.gridSize,
           },
-          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + this.gridSize },
           {
-            x: coord.x + brickSize,
-            y: coord.y + brickSize,
+            x: coord.x + this.gridSize,
+            y: coord.y + this.gridSize,
           },
           {
-            x: coord.x + brickSize,
-            y: coord.y + brickSize * 2,
+            x: coord.x + this.gridSize,
+            y: coord.y + this.gridSize * 2,
           },
         ],
       },
       L: {
         1: [
           coord,
-          { x: coord.x, y: coord.y + brickSize },
-          { x: coord.x, y: coord.y + 2 * brickSize },
+          { x: coord.x, y: coord.y + this.gridSize },
+          { x: coord.x, y: coord.y + 2 * this.gridSize },
           {
-            x: coord.x + brickSize,
-            y: coord.y + 2 * brickSize,
+            x: coord.x + this.gridSize,
+            y: coord.y + 2 * this.gridSize,
           },
         ],
         2: [
-          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + this.gridSize },
           {
-            x: coord.x + brickSize,
-            y: coord.y + brickSize,
+            x: coord.x + this.gridSize,
+            y: coord.y + this.gridSize,
           },
           {
-            x: coord.x - brickSize,
-            y: coord.y + brickSize,
+            x: coord.x - this.gridSize,
+            y: coord.y + this.gridSize,
           },
           {
-            x: coord.x - brickSize,
-            y: coord.y + brickSize * 2,
+            x: coord.x - this.gridSize,
+            y: coord.y + this.gridSize * 2,
           },
         ],
         3: [
           coord,
-          { x: coord.x - brickSize, y: coord.y },
-          { x: coord.x, y: coord.y + brickSize },
-          { x: coord.x, y: coord.y + brickSize * 2 },
+          { x: coord.x - this.gridSize, y: coord.y },
+          { x: coord.x, y: coord.y + this.gridSize },
+          { x: coord.x, y: coord.y + this.gridSize * 2 },
         ],
         4: [
-          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + this.gridSize },
           {
-            x: coord.x + brickSize,
-            y: coord.y + brickSize,
+            x: coord.x + this.gridSize,
+            y: coord.y + this.gridSize,
           },
-          { x: coord.x + brickSize, y: coord.y },
+          { x: coord.x + this.gridSize, y: coord.y },
           {
-            x: coord.x - brickSize,
-            y: coord.y + brickSize,
+            x: coord.x - this.gridSize,
+            y: coord.y + this.gridSize,
           },
         ],
       },
@@ -240,38 +263,38 @@ export class Tetromino {
       T: {
         1: [
           coord,
-          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + this.gridSize },
           {
-            x: coord.x - brickSize,
-            y: coord.y + brickSize,
+            x: coord.x - this.gridSize,
+            y: coord.y + this.gridSize,
           },
           {
-            x: coord.x + brickSize,
-            y: coord.y + brickSize,
+            x: coord.x + this.gridSize,
+            y: coord.y + this.gridSize,
           },
         ],
         2: [
           coord,
-          { x: coord.x, y: coord.y + brickSize },
-          { x: coord.x, y: coord.y + brickSize * 2 },
+          { x: coord.x, y: coord.y + this.gridSize },
+          { x: coord.x, y: coord.y + this.gridSize * 2 },
           {
-            x: coord.x + brickSize,
-            y: coord.y + brickSize,
+            x: coord.x + this.gridSize,
+            y: coord.y + this.gridSize,
           },
         ],
         3: [
-          { x: coord.x - brickSize, y: coord.y + brickSize },
-          { x: coord.x, y: coord.y + brickSize },
-          { x: coord.x + brickSize, y: coord.y + brickSize },
-          { x: coord.x, y: coord.y + brickSize * 2 },
+          { x: coord.x - this.gridSize, y: coord.y + this.gridSize },
+          { x: coord.x, y: coord.y + this.gridSize },
+          { x: coord.x + this.gridSize, y: coord.y + this.gridSize },
+          { x: coord.x, y: coord.y + this.gridSize * 2 },
         ],
         4: [
           coord,
-          { x: coord.x, y: coord.y + brickSize },
-          { x: coord.x, y: coord.y + brickSize * 2 },
+          { x: coord.x, y: coord.y + this.gridSize },
+          { x: coord.x, y: coord.y + this.gridSize * 2 },
           {
-            x: coord.x - brickSize,
-            y: coord.y + brickSize,
+            x: coord.x - this.gridSize,
+            y: coord.y + this.gridSize,
           },
         ],
       },
@@ -293,7 +316,7 @@ export class Tetromino {
   private drawBrick(coord: Coordinates, colorPallete: ColorPalette) {
     // Draw the main brick
     this.ctx!.fillStyle = colorPallete.main
-    this.ctx!.fillRect(coord.x, coord.y, this.brickSize, this.brickSize)
+    this.ctx!.fillRect(coord.x, coord.y, this.gridSize, this.gridSize)
 
     // Create the inner shadow effect
     const shadowInset = 4 // How much smaller the shadow rectangle is
@@ -301,43 +324,43 @@ export class Tetromino {
     this.ctx!.fillRect(
       coord.x + shadowInset,
       coord.y + shadowInset,
-      this.brickSize - 2 * shadowInset,
-      this.brickSize - 2 * shadowInset,
+      this.gridSize - 2 * shadowInset,
+      this.gridSize - 2 * shadowInset,
     )
 
     // Draw a small square in the middle of the brick
-    const squareSize = this.brickSize / 3 // Size of the small square (1/3 of the brick size)
-    const squareX = coord.x + (this.brickSize - squareSize) / 2
-    const squareY = coord.y + (this.brickSize - squareSize) / 2
+    const squareSize = this.gridSize / 3 // Size of the small square (1/3 of the brick size)
+    const squareX = coord.x + (this.gridSize - squareSize) / 2
+    const squareY = coord.y + (this.gridSize - squareSize) / 2
     this.ctx!.fillStyle = colorPallete.main
     this.ctx!.fillRect(squareX, squareY, squareSize, squareSize)
 
     // Draw the black border
     this.ctx!.strokeStyle = '#000000' // Black color for the border
     this.ctx!.lineWidth = 2 // Thickness of the border
-    this.ctx!.strokeRect(coord.x, coord.y, this.brickSize, this.brickSize)
+    this.ctx!.strokeRect(coord.x, coord.y, this.gridSize, this.gridSize)
 
     // Draw the thin light line on the upper and left sides
     const lightColor = colorPallete.lighter // Almost white color for the light effect
     const lightLineHeight = 2 // Thickness of the light line
     this.ctx!.fillStyle = lightColor
-    this.ctx!.fillRect(coord.x, coord.y, this.brickSize, lightLineHeight) // Top edge line
-    this.ctx!.fillRect(coord.x, coord.y, lightLineHeight, this.brickSize) // Left edge line
+    this.ctx!.fillRect(coord.x, coord.y, this.gridSize, lightLineHeight) // Top edge line
+    this.ctx!.fillRect(coord.x, coord.y, lightLineHeight, this.gridSize) // Left edge line
 
     // Draw the thin dark line on the right and bottom sides
     const darkColor = colorPallete.darker // Darker color for the shadow effect
     const darkLineHeight = 2 // Thickness of the dark line
     this.ctx!.fillStyle = darkColor
     this.ctx!.fillRect(
-      coord.x + this.brickSize - darkLineHeight,
+      coord.x + this.gridSize - darkLineHeight,
       coord.y,
       darkLineHeight,
-      this.brickSize,
+      this.gridSize,
     ) // Right edge line
     this.ctx!.fillRect(
       coord.x,
-      coord.y + this.brickSize - darkLineHeight,
-      this.brickSize,
+      coord.y + this.gridSize - darkLineHeight,
+      this.gridSize,
       darkLineHeight,
     ) // Bottom edge line
   }
@@ -356,26 +379,37 @@ export class Tetromino {
 
     this.positionCoordinatesByShape[this.shape][this.position].forEach(
       (coord) => {
-        this.ctx!.clearRect(coord.x, coord.y, this.brickSize, this.brickSize)
-        this.ctx!.strokeRect(coord.x, coord.y, this.brickSize, this.brickSize)
+        this.ctx!.clearRect(coord.x, coord.y, this.gridSize, this.gridSize)
+        this.ctx!.strokeRect(coord.x, coord.y, this.gridSize, this.gridSize)
       },
     )
   }
 
   moveRight() {
     // Detect collision to right wall
-    if (
-      this.positionCoordinatesByShape[this.shape][this.position].some(
-        (coord) => coord.x >= this.brickSize * 10 - this.brickSize,
-      )
+    const itCollidedWithTheWall = this.positionCoordinatesByShape[this.shape][
+      this.position
+    ].some((coord) => coord.x >= this.gridSize * 10 - this.gridSize)
+
+    // Detect collision with another brick
+    const itCollidedWithAnotherBrick = this.positionCoordinatesByShape[
+      this.shape
+    ][this.position].some((currentCoord) =>
+      this.occupiedGrids.some(
+        (occupiedBrick) =>
+          occupiedBrick.x === currentCoord.x + this.gridSize &&
+          occupiedBrick.y === currentCoord.y,
+      ),
     )
-      return
+
+    if (itCollidedWithTheWall || itCollidedWithAnotherBrick) return
 
     this.undraw()
 
     const coordsByShape: PositionCoordinatesByShape =
       this.positionCoordinatesByShape
 
+    // Move all shapes in all positions to the right
     Object.keys(coordsByShape).forEach((shape) => {
       const tetrominoShape = shape as TetrominoShapes
       Object.keys(coordsByShape[tetrominoShape]).forEach((position) => {
@@ -385,7 +419,7 @@ export class Tetromino {
           position as unknown as TetrominoPositions
         ].map((coord) => ({
           ...coord,
-          x: coord.x + this.brickSize,
+          x: coord.x + this.gridSize,
         }))
       })
     })
@@ -395,18 +429,29 @@ export class Tetromino {
 
   moveLeft() {
     // Detect collision to right wall
-    if (
-      this.positionCoordinatesByShape[this.shape][this.position].some(
-        (coord) => coord.x <= 0,
-      )
+    const itCollidedWithTheWall = this.positionCoordinatesByShape[this.shape][
+      this.position
+    ].some((coord) => coord.x <= 0)
+
+    // Detect collision with another brick
+    const itCollidedWithAnotherBrick = this.positionCoordinatesByShape[
+      this.shape
+    ][this.position].some((currentCoord) =>
+      this.occupiedGrids.some(
+        (occupiedBrick) =>
+          occupiedBrick.x === currentCoord.x - this.gridSize &&
+          occupiedBrick.y === currentCoord.y,
+      ),
     )
-      return
+
+    if (itCollidedWithTheWall || itCollidedWithAnotherBrick) return
 
     this.undraw()
 
     const coordsByShape: PositionCoordinatesByShape =
       this.positionCoordinatesByShape
 
+    // Move all shapes in all positions to the left
     Object.keys(coordsByShape).forEach((shape) => {
       const tetrominoShape = shape as TetrominoShapes
       Object.keys(coordsByShape[tetrominoShape]).forEach((position) => {
@@ -416,7 +461,7 @@ export class Tetromino {
           position as unknown as TetrominoPositions
         ].map((coord) => ({
           ...coord,
-          x: coord.x - this.brickSize,
+          x: coord.x - this.gridSize,
         }))
       })
     })
@@ -427,21 +472,22 @@ export class Tetromino {
   moveDown() {
     const itCollidedWithTheFloor = this.positionCoordinatesByShape[this.shape][
       this.position
-    ].some((coord) => coord.y >= this.brickSize * 20 - this.brickSize)
+    ].some((coord) => coord.y >= this.gridSize * 20 - this.gridSize)
 
     const itCollidedWithAnotherBrick = this.positionCoordinatesByShape[
       this.shape
     ][this.position].some((currentCoord) =>
-      this.coordsTaken.some(
-        (coordTaken) =>
-          coordTaken.x === currentCoord.x && coordTaken.y === currentCoord.y,
+      this.occupiedGrids.some(
+        (occupiedBrick) =>
+          occupiedBrick.x === currentCoord.x &&
+          occupiedBrick.y === currentCoord.y + this.gridSize,
       ),
     )
 
     if (itCollidedWithTheFloor || itCollidedWithAnotherBrick) {
       this._isFreezed = true
-      this.coordsTaken = [
-        ...this.coordsTaken,
+      this._bricksTaken = [
+        ...this._bricksTaken,
         ...this.positionCoordinatesByShape[this.shape][this.position],
       ]
       return
@@ -452,6 +498,7 @@ export class Tetromino {
     const coordsByShape: PositionCoordinatesByShape =
       this.positionCoordinatesByShape
 
+    // Move all shapes in all positions down
     Object.keys(coordsByShape).forEach((shape) => {
       const tetrominoShape = shape as TetrominoShapes
       Object.keys(coordsByShape[tetrominoShape]).forEach((position) => {
@@ -461,7 +508,7 @@ export class Tetromino {
           position as unknown as TetrominoPositions
         ].map((coord) => ({
           ...coord,
-          y: coord.y + 30,
+          y: coord.y + this.gridSize,
         }))
       })
     })
@@ -483,7 +530,11 @@ export class Tetromino {
     this.draw()
   }
 
-  isFreezed() {
+  get isFreezed() {
     return this._isFreezed
+  }
+
+  get bricksTaken() {
+    return this._bricksTaken
   }
 }

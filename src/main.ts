@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ) as HTMLDivElement
   const tetrisBoard = new TetrisBoard(BOARD_WIDTH, canvas!, GRID_COLOR)
   const initialPosition = { x: GRID_SIZE * 4, y: 0 }
+  const currentPosition: TetrominoPositions = 1
   const tetrominoShapes = [
     TetrominoShapes.T,
     TetrominoShapes.J,
@@ -41,15 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Paint tetris board
   tetrisBoard.draw()
 
-  const currentPosition: TetrominoPositions = 1
-
   let currentTetromino = new Tetromino({
-    brickSize: GRID_SIZE,
     canvas,
     coord: initialPosition,
-    gridColor: GRID_COLOR,
     shape: getNextTetrominoShape(),
     position: currentPosition,
+    tetrisBoard,
   })
 
   // Function to handle keydown events
@@ -58,9 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ArrowRight: () => currentTetromino.moveRight(),
       ArrowLeft: () => currentTetromino.moveLeft(),
       ArrowDown: () => currentTetromino.moveDown(),
-      Space: () => {
-        currentTetromino.rotate()
-      },
+      Space: () => currentTetromino.rotate(),
     }
 
     if (e.code in events) {
@@ -83,14 +79,20 @@ document.addEventListener('DOMContentLoaded', () => {
       start = 0
     }
 
-    if (currentTetromino.isFreezed()) {
+    if (currentTetromino.bricksTaken.length !== 0) {
+      tetrisBoard.gridsTaken = [
+        ...tetrisBoard.gridsTaken,
+        ...currentTetromino.bricksTaken,
+      ]
+    }
+
+    if (currentTetromino.isFreezed) {
       currentTetromino = new Tetromino({
-        brickSize: GRID_SIZE,
         canvas,
         coord: initialPosition,
-        gridColor: GRID_COLOR,
         shape: getNextTetrominoShape(),
         position: currentPosition,
+        tetrisBoard,
       })
     }
 

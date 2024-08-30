@@ -1,3 +1,5 @@
+import { ITetrisBoard } from './interfaces'
+
 export enum TetrominoShapes {
   L = 'L',
   T = 'T',
@@ -24,9 +26,8 @@ export type TetrominoPositions = 1 | 2 | 3 | 4
 
 export type TetrominoParams = {
   canvas: HTMLCanvasElement | null
-  brickSize: number
-  gridColor: string
   coord: Coordinates
   shape: TetrominoShapes
   position?: TetrominoPositions
+  tetrisBoard: ITetrisBoard
 }
