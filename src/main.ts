@@ -1,23 +1,104 @@
 import './style.css'
 import { TetrisBoard } from './TetrisBoard'
 import { Tetromino } from './Tetromino'
-import { TetrominoShapes } from './types'
+import { TetrominoPositions, TetrominoShapes } from './types'
+import { shuffleItems } from './utils'
 
 const BOARD_WIDTH = 300
 const GRID_SIZE = BOARD_WIDTH / 10
+const GRID_COLOR = 'rgba(255, 255, 255, 0.1)'
+const BOARD_BACKGROUND_COLOR = '#000000'
 
 document.addEventListener('DOMContentLoaded', () => {
   const canvas = document.querySelector('canvas')
-  const tetrisBoard = new TetrisBoard(BOARD_WIDTH, canvas!)
+  const canvasContainerElement = document.querySelector(
+    '.canvas-container',
+  ) as HTMLDivElement
+  const tetrisBoard = new TetrisBoard(BOARD_WIDTH, canvas!, GRID_COLOR)
+  const initialPosition = { x: GRID_SIZE * 4, y: 0 }
+  const tetrominoShapes = [
+    TetrominoShapes.T,
+    TetrominoShapes.J,
+    TetrominoShapes.O,
+    TetrominoShapes.L,
+    TetrominoShapes.S,
+    TetrominoShapes.Z,
+    TetrominoShapes.I,
+  ]
+  let shuffledShapes = shuffleItems(tetrominoShapes)
+  let start: number = 0
 
-  // Pain tetris board
+  function getNextTetrominoShape() {
+    if (shuffledShapes.length === 0) {
+      shuffledShapes = shuffleItems(tetrominoShapes)
+    }
+    return shuffledShapes.pop()
+  }
+
+  // set board backgroundColor
+  canvasContainerElement.style.backgroundColor = BOARD_BACKGROUND_COLOR
+
+  // Paint tetris board
   tetrisBoard.draw()
 
-  const tetromino = new Tetromino(canvas!, GRID_SIZE)
+  const currentPosition: TetrominoPositions = 1
 
-  // Draw a tetromino
-  tetromino.draw({ x: GRID_SIZE * 4, y: 0 }, TetrominoShapes.L, 4)
+  let currentTetromino = new Tetromino({
+    brickSize: GRID_SIZE,
+    canvas,
+    coord: initialPosition,
+    gridColor: GRID_COLOR,
+    shape: getNextTetrominoShape(),
+    position: currentPosition,
+  })
 
-  // Example: Draw an L Tetromino at position (50, 50) with each brick being 40x40 pixels
-  // drawLTetromino(GRID_SIZE * 3, GRID_SIZE, GRID_SIZE)
+  // Function to handle keydown events
+  function handleKeydown(e: KeyboardEvent) {
+    const events: { [key: string]: () => void } = {
+      ArrowRight: () => currentTetromino.moveRight(),
+      ArrowLeft: () => currentTetromino.moveLeft(),
+      ArrowDown: () => currentTetromino.moveDown(),
+      Space: () => {
+        currentTetromino.rotate()
+      },
+    }
+
+    if (e.code in events) {
+      events[e.code]()
+    }
+  }
+
+  // Add event listener for keydown events
+  document.addEventListener('keydown', handleKeydown)
+
+  function update(timestamp: number) {
+    if (start === 0) {
+      start = timestamp
+    }
+
+    const timeElapsed = timestamp - start
+
+    if (timeElapsed >= 1500) {
+      currentTetromino.moveDown()
+      start = 0
+    }
+
+    if (currentTetromino.isFreezed()) {
+      currentTetromino = new Tetromino({
+        brickSize: GRID_SIZE,
+        canvas,
+        coord: initialPosition,
+        gridColor: GRID_COLOR,
+        shape: getNextTetrominoShape(),
+        position: currentPosition,
+      })
+    }
+
+    currentTetromino.undraw()
+    currentTetromino.draw()
+
+    requestAnimationFrame(update)
+  }
+
+  requestAnimationFrame(update)
 })

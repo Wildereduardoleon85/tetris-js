@@ -1,13 +1,26 @@
 import {
   ColorPalette,
   Coordinates,
+  TetrominoParams,
   TetrominoPositions,
   TetrominoShapes,
 } from './types'
 
+type CoordinatesByPosition = { [K in TetrominoPositions]: Coordinates[] }
+
+type PositionCoordinatesByShape = {
+  [K in TetrominoShapes]: CoordinatesByPosition
+}
+
 export class Tetromino {
   private brickSize
   private ctx: CanvasRenderingContext2D | null
+  private shape
+  private position
+  private positionCoordinatesByShape: PositionCoordinatesByShape
+  private gridColor
+  private coordsTaken: Coordinates[]
+  private _isFreezed
   private colorPalletes: { [K in TetrominoShapes]: ColorPalette } = {
     L: {
       main: '#E734BA',
@@ -53,9 +66,228 @@ export class Tetromino {
     },
   }
 
-  constructor(canvas: HTMLCanvasElement, brickSize: number) {
-    this.ctx = canvas.getContext('2d')
+  constructor({
+    canvas,
+    brickSize,
+    gridColor,
+    coord,
+    shape,
+    position,
+  }: TetrominoParams) {
+    const sOddPositionCoordinates = [
+      coord,
+      { x: coord.x + brickSize, y: coord.y },
+      { x: coord.x, y: coord.y + brickSize },
+      { x: coord.x - brickSize, y: coord.y + brickSize },
+    ]
+
+    const sEvenPositionCoordinates = [
+      { x: coord.x - brickSize, y: coord.y },
+      { x: coord.x - brickSize, y: coord.y + brickSize },
+      { x: coord.x, y: coord.y + brickSize },
+      { x: coord.x, y: coord.y + brickSize * 2 },
+    ]
+
+    const zOddPositionCoordinates = [
+      { x: coord.x - brickSize, y: coord.y },
+      coord,
+      { x: coord.x, y: coord.y + brickSize },
+      { x: coord.x + brickSize, y: coord.y + brickSize },
+    ]
+
+    const zEvenPositionCoordinates = [
+      coord,
+      { x: coord.x, y: coord.y + brickSize },
+      { x: coord.x - brickSize, y: coord.y + brickSize },
+      {
+        x: coord.x - brickSize,
+        y: coord.y + brickSize * 2,
+      },
+    ]
+
+    const oPositionCoordinates = [
+      { x: coord.x - brickSize, y: coord.y },
+      coord,
+      { x: coord.x, y: coord.y + brickSize },
+      { x: coord.x - brickSize, y: coord.y + brickSize },
+    ]
+
+    const iOddPositionCoordinates = [
+      coord,
+      { x: coord.x, y: coord.y + brickSize },
+      { x: coord.x, y: coord.y + brickSize * 2 },
+      { x: coord.x, y: coord.y + brickSize * 3 },
+    ]
+
+    const iEvenPositionCoordinates = [
+      { x: coord.x - brickSize, y: coord.y + brickSize },
+      { x: coord.x, y: coord.y + brickSize },
+      { x: coord.x + brickSize, y: coord.y + brickSize },
+      {
+        x: coord.x + brickSize * 2,
+        y: coord.y + brickSize,
+      },
+    ]
+
+    this.ctx = canvas!.getContext('2d')
     this.brickSize = brickSize
+    this.gridColor = gridColor
+    this.shape = shape
+    this.position = position ?? 1
+    this.coordsTaken = []
+    this._isFreezed = false
+    this.positionCoordinatesByShape = {
+      J: {
+        1: [
+          coord,
+          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + 2 * brickSize },
+          {
+            x: coord.x - brickSize,
+            y: coord.y + 2 * brickSize,
+          },
+        ],
+        2: [
+          { x: coord.x - brickSize, y: coord.y },
+          {
+            x: coord.x - brickSize,
+            y: coord.y + brickSize,
+          },
+          { x: coord.x, y: coord.y + brickSize },
+          {
+            x: coord.x + brickSize,
+            y: coord.y + brickSize,
+          },
+        ],
+        3: [
+          coord,
+          { x: coord.x + brickSize, y: coord.y },
+          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + brickSize * 2 },
+        ],
+        4: [
+          {
+            x: coord.x - brickSize,
+            y: coord.y + brickSize,
+          },
+          { x: coord.x, y: coord.y + brickSize },
+          {
+            x: coord.x + brickSize,
+            y: coord.y + brickSize,
+          },
+          {
+            x: coord.x + brickSize,
+            y: coord.y + brickSize * 2,
+          },
+        ],
+      },
+      L: {
+        1: [
+          coord,
+          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + 2 * brickSize },
+          {
+            x: coord.x + brickSize,
+            y: coord.y + 2 * brickSize,
+          },
+        ],
+        2: [
+          { x: coord.x, y: coord.y + brickSize },
+          {
+            x: coord.x + brickSize,
+            y: coord.y + brickSize,
+          },
+          {
+            x: coord.x - brickSize,
+            y: coord.y + brickSize,
+          },
+          {
+            x: coord.x - brickSize,
+            y: coord.y + brickSize * 2,
+          },
+        ],
+        3: [
+          coord,
+          { x: coord.x - brickSize, y: coord.y },
+          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + brickSize * 2 },
+        ],
+        4: [
+          { x: coord.x, y: coord.y + brickSize },
+          {
+            x: coord.x + brickSize,
+            y: coord.y + brickSize,
+          },
+          { x: coord.x + brickSize, y: coord.y },
+          {
+            x: coord.x - brickSize,
+            y: coord.y + brickSize,
+          },
+        ],
+      },
+      S: {
+        1: sOddPositionCoordinates,
+        2: sEvenPositionCoordinates,
+        3: sOddPositionCoordinates,
+        4: sEvenPositionCoordinates,
+      },
+      Z: {
+        1: zOddPositionCoordinates,
+        2: zEvenPositionCoordinates,
+        3: zOddPositionCoordinates,
+        4: zEvenPositionCoordinates,
+      },
+      T: {
+        1: [
+          coord,
+          { x: coord.x, y: coord.y + brickSize },
+          {
+            x: coord.x - brickSize,
+            y: coord.y + brickSize,
+          },
+          {
+            x: coord.x + brickSize,
+            y: coord.y + brickSize,
+          },
+        ],
+        2: [
+          coord,
+          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + brickSize * 2 },
+          {
+            x: coord.x + brickSize,
+            y: coord.y + brickSize,
+          },
+        ],
+        3: [
+          { x: coord.x - brickSize, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x + brickSize, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + brickSize * 2 },
+        ],
+        4: [
+          coord,
+          { x: coord.x, y: coord.y + brickSize },
+          { x: coord.x, y: coord.y + brickSize * 2 },
+          {
+            x: coord.x - brickSize,
+            y: coord.y + brickSize,
+          },
+        ],
+      },
+      O: {
+        1: oPositionCoordinates,
+        2: oPositionCoordinates,
+        3: oPositionCoordinates,
+        4: oPositionCoordinates,
+      },
+      I: {
+        1: iOddPositionCoordinates,
+        2: iEvenPositionCoordinates,
+        3: iOddPositionCoordinates,
+        4: iEvenPositionCoordinates,
+      },
+    }
   }
 
   private drawBrick(coord: Coordinates, colorPallete: ColorPalette) {
@@ -110,133 +342,148 @@ export class Tetromino {
     ) // Bottom edge line
   }
 
-  private drawLTetromino(
-    coord: Coordinates,
-    positions: TetrominoPositions = 1,
-  ) {
-    switch (positions) {
-      case 1:
-        this.drawBrick(coord, this.colorPalletes.L)
-        this.drawBrick(
-          { x: coord.x, y: coord.y + this.brickSize },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x, y: coord.y + 2 * this.brickSize },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x + this.brickSize, y: coord.y + 2 * this.brickSize },
-          this.colorPalletes.L,
-        )
-        break
-      case 2:
-        this.drawBrick(
-          { x: coord.x, y: coord.y + this.brickSize },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x + this.brickSize, y: coord.y + this.brickSize },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x - this.brickSize, y: coord.y + this.brickSize },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x - this.brickSize, y: coord.y + this.brickSize * 2 },
-          this.colorPalletes.L,
-        )
-        break
-      case 3:
-        this.drawBrick(coord, this.colorPalletes.L)
-        this.drawBrick(
-          { x: coord.x - this.brickSize, y: coord.y },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x, y: coord.y + this.brickSize },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x, y: coord.y + this.brickSize * 2 },
-          this.colorPalletes.L,
-        )
-        break
-      case 4:
-        this.drawBrick(
-          { x: coord.x, y: coord.y + this.brickSize },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x + this.brickSize, y: coord.y + this.brickSize },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x + this.brickSize, y: coord.y },
-          this.colorPalletes.L,
-        )
-        this.drawBrick(
-          { x: coord.x - this.brickSize, y: coord.y + this.brickSize },
-          this.colorPalletes.L,
-        )
-        break
+  draw() {
+    this.positionCoordinatesByShape[this.shape][this.position].forEach(
+      (coord) => {
+        this.drawBrick(coord, this.colorPalletes[this.shape])
+      },
+    )
+  }
+
+  undraw() {
+    this.ctx!.strokeStyle = this.gridColor
+    this.ctx!.lineWidth = 1
+
+    this.positionCoordinatesByShape[this.shape][this.position].forEach(
+      (coord) => {
+        this.ctx!.clearRect(coord.x, coord.y, this.brickSize, this.brickSize)
+        this.ctx!.strokeRect(coord.x, coord.y, this.brickSize, this.brickSize)
+      },
+    )
+  }
+
+  moveRight() {
+    // Detect collision to right wall
+    if (
+      this.positionCoordinatesByShape[this.shape][this.position].some(
+        (coord) => coord.x >= this.brickSize * 10 - this.brickSize,
+      )
+    )
+      return
+
+    this.undraw()
+
+    const coordsByShape: PositionCoordinatesByShape =
+      this.positionCoordinatesByShape
+
+    Object.keys(coordsByShape).forEach((shape) => {
+      const tetrominoShape = shape as TetrominoShapes
+      Object.keys(coordsByShape[tetrominoShape]).forEach((position) => {
+        coordsByShape[shape as TetrominoShapes][
+          position as unknown as TetrominoPositions
+        ] = coordsByShape[shape as TetrominoShapes][
+          position as unknown as TetrominoPositions
+        ].map((coord) => ({
+          ...coord,
+          x: coord.x + this.brickSize,
+        }))
+      })
+    })
+
+    this.draw()
+  }
+
+  moveLeft() {
+    // Detect collision to right wall
+    if (
+      this.positionCoordinatesByShape[this.shape][this.position].some(
+        (coord) => coord.x <= 0,
+      )
+    )
+      return
+
+    this.undraw()
+
+    const coordsByShape: PositionCoordinatesByShape =
+      this.positionCoordinatesByShape
+
+    Object.keys(coordsByShape).forEach((shape) => {
+      const tetrominoShape = shape as TetrominoShapes
+      Object.keys(coordsByShape[tetrominoShape]).forEach((position) => {
+        coordsByShape[shape as TetrominoShapes][
+          position as unknown as TetrominoPositions
+        ] = coordsByShape[shape as TetrominoShapes][
+          position as unknown as TetrominoPositions
+        ].map((coord) => ({
+          ...coord,
+          x: coord.x - this.brickSize,
+        }))
+      })
+    })
+
+    this.draw()
+  }
+
+  moveDown() {
+    const itCollidedWithTheFloor = this.positionCoordinatesByShape[this.shape][
+      this.position
+    ].some((coord) => coord.y >= this.brickSize * 20 - this.brickSize)
+
+    const itCollidedWithAnotherBrick = this.positionCoordinatesByShape[
+      this.shape
+    ][this.position].some((currentCoord) =>
+      this.coordsTaken.some(
+        (coordTaken) =>
+          coordTaken.x === currentCoord.x && coordTaken.y === currentCoord.y,
+      ),
+    )
+
+    if (itCollidedWithTheFloor || itCollidedWithAnotherBrick) {
+      this._isFreezed = true
+      this.coordsTaken = [
+        ...this.coordsTaken,
+        ...this.positionCoordinatesByShape[this.shape][this.position],
+      ]
+      return
+    }
+
+    this.undraw()
+
+    const coordsByShape: PositionCoordinatesByShape =
+      this.positionCoordinatesByShape
+
+    Object.keys(coordsByShape).forEach((shape) => {
+      const tetrominoShape = shape as TetrominoShapes
+      Object.keys(coordsByShape[tetrominoShape]).forEach((position) => {
+        coordsByShape[shape as TetrominoShapes][
+          position as unknown as TetrominoPositions
+        ] = coordsByShape[shape as TetrominoShapes][
+          position as unknown as TetrominoPositions
+        ].map((coord) => ({
+          ...coord,
+          y: coord.y + 30,
+        }))
+      })
+    })
+
+    this.draw()
+  }
+
+  private changePosition() {
+    if (this.position === 4) {
+      this.position = 1
+    } else {
+      this.position = (this.position + 1) as TetrominoPositions
     }
   }
 
-  private drawJTetromino(
-    coord: Coordinates,
-    positions: TetrominoPositions = 1,
-  ) {
-    this.drawBrick(coord, this.colorPalletes.J) // Top brick
-    this.drawBrick(
-      { x: coord.x, y: coord.y + this.brickSize },
-      this.colorPalletes.J,
-    ) // Middle brick
-    this.drawBrick(
-      { x: coord.x, y: coord.y + 2 * this.brickSize },
-      this.colorPalletes.J,
-    ) // Bottom brick
-    this.drawBrick(
-      { x: coord.x - this.brickSize, y: coord.y + 2 * this.brickSize },
-      this.colorPalletes.J,
-    ) // Left brick
+  rotate() {
+    this.undraw()
+    this.changePosition()
+    this.draw()
   }
 
-  private drawSTetromino(
-    coord: Coordinates,
-    positions: TetrominoPositions = 1,
-  ) {
-    this.drawBrick(coord, this.colorPalletes.S)
-    this.drawBrick(
-      { x: coord.x + this.brickSize, y: coord.y },
-      this.colorPalletes.S,
-    )
-    this.drawBrick(
-      { x: coord.x, y: coord.y + this.brickSize },
-      this.colorPalletes.S,
-    )
-    this.drawBrick(
-      { x: coord.x - this.brickSize, y: coord.y + this.brickSize },
-      this.colorPalletes.S,
-    )
-  }
-
-  draw(
-    coord: Coordinates,
-    shape: TetrominoShapes,
-    positions: TetrominoPositions = 1,
-  ) {
-    const tetrominoShapesDict: { [K in TetrominoShapes]: () => void } = {
-      L: () => this.drawLTetromino(coord, positions),
-      J: () => this.drawJTetromino(coord, positions),
-      S: () => this.drawSTetromino(coord, positions),
-      Z: () => {},
-      O: () => {},
-      I: () => {},
-      T: () => {},
-    }
-
-    tetrominoShapesDict[shape]()
+  isFreezed() {
+    return this._isFreezed
   }
 }

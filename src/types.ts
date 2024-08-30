@@ -21,3 +21,12 @@ export type Coordinates = {
 }
 
 export type TetrominoPositions = 1 | 2 | 3 | 4
+
+export type TetrominoParams = {
+  canvas: HTMLCanvasElement | null
+  brickSize: number
+  gridColor: string
+  coord: Coordinates
+  shape: TetrominoShapes
+  position?: TetrominoPositions
+}
