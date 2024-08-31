@@ -7,6 +7,8 @@ export class TetrisBoard implements ITetrisBoard {
   private _gridSize: number
   private _gridColor
   private _gridsTaken: Coordinates[]
+  private _boardWidth
+  private _boardHeight
 
   constructor(
     boardWidth: number,
@@ -20,6 +22,8 @@ export class TetrisBoard implements ITetrisBoard {
     this._gridSize = boardWidth / 10
     this._gridColor = gridColor
     this._gridsTaken = []
+    this._boardWidth = boardWidth
+    this._boardHeight = this._gridSize * 20
   }
 
   draw() {
@@ -57,5 +61,13 @@ export class TetrisBoard implements ITetrisBoard {
 
   get gridColor() {
     return this._gridColor
+  }
+
+  get boardWidth() {
+    return this._boardWidth
+  }
+
+  get boardHeight() {
+    return this._boardHeight
   }
 }

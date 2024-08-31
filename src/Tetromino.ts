@@ -22,6 +22,8 @@ export class Tetromino {
   private gridSize
   private gridColor
   private occupiedGrids
+  private boardWidth
+  private boardHeight
   private colorPalletes: { [K in TetrominoShapes]: ColorPalette } = {
     L: {
       main: '#E734BA',
@@ -82,6 +84,8 @@ export class Tetromino {
     this.gridSize = tetrisBoard.gridSize
     this.gridColor = tetrisBoard.gridColor
     this.occupiedGrids = tetrisBoard.gridsTaken
+    this.boardWidth = tetrisBoard.boardWidth
+    this.boardHeight = tetrisBoard.boardHeight
 
     const sOddPositionCoordinates = [
       coord,
@@ -389,7 +393,7 @@ export class Tetromino {
     // Detect collision to right wall
     const itCollidedWithTheWall = this.positionCoordinatesByShape[this.shape][
       this.position
-    ].some((coord) => coord.x >= this.gridSize * 10 - this.gridSize)
+    ].some((coord) => coord.x >= this.boardWidth - this.gridSize)
 
     // Detect collision with another brick
     const itCollidedWithAnotherBrick = this.positionCoordinatesByShape[
@@ -472,7 +476,7 @@ export class Tetromino {
   moveDown() {
     const itCollidedWithTheFloor = this.positionCoordinatesByShape[this.shape][
       this.position
-    ].some((coord) => coord.y >= this.gridSize * 20 - this.gridSize)
+    ].some((coord) => coord.y >= this.boardHeight - this.gridSize)
 
     const itCollidedWithAnotherBrick = this.positionCoordinatesByShape[
       this.shape
@@ -528,6 +532,25 @@ export class Tetromino {
     this.undraw()
     this.changePosition()
     this.draw()
+
+    // Adjust position if rotates near the left or the right wall
+    this.positionCoordinatesByShape[this.shape][this.position].some((coord) => {
+      const offset = (this.boardWidth - this.gridSize - coord.x) * -1
+
+      if (coord.x > this.boardWidth - this.gridSize) {
+        if (offset >= this.gridSize) {
+          this.moveLeft()
+          this.moveRight()
+        }
+      }
+
+      if (coord.x < 0) {
+        if (offset <= 0) {
+          this.moveRight()
+          this.moveLeft()
+        }
+      }
+    })
   }
 
   get isFreezed() {

@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (currentTetromino.isFreezed) {
+      // Start another tetromino once it hits the floor
       currentTetromino = new Tetromino({
         canvas,
         coord: initialPosition,
