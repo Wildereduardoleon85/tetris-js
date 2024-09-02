@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     currentTetromino.undraw()
     currentTetromino.draw()
+    tetrisBoard.watch()
 
     requestAnimationFrame(update)
   }

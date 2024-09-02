@@ -31,3 +31,8 @@ export type TetrominoParams = {
   position?: TetrominoPositions
   tetrisBoard: ITetrisBoard
 }
+
+export type OccupiedGrids = {
+  coordinates: Coordinates
+  tetrominoShape: TetrominoShapes
+}

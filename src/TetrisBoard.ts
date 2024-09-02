@@ -47,6 +47,32 @@ export class TetrisBoard implements ITetrisBoard {
     }
   }
 
+  watch() {
+    const rowsCount: { [key: number]: number } = {}
+
+    this._gridsTaken.forEach((gridTaken) => {
+      rowsCount[gridTaken.y] = rowsCount[gridTaken.y]
+        ? rowsCount[gridTaken.y] + 1
+        : 1
+    })
+
+    Object.keys(rowsCount).forEach((key) => {
+      if (rowsCount[Number(key)] === this._boardWidth / this._gridSize) {
+        this.ctx!.clearRect(0, Number(key), this._boardWidth, this.gridSize)
+
+        this._gridsTaken = this._gridsTaken.map((gridTaken) => {
+          return {
+            x: gridTaken.x,
+            y:
+              gridTaken.y < Number(key)
+                ? gridTaken.y + this._gridSize
+                : gridTaken.y,
+          }
+        })
+      }
+    })
+  }
+
   set gridsTaken(value: Coordinates[]) {
     this._gridsTaken = value
   }
